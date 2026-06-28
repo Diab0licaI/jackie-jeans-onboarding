@@ -1,9 +1,3 @@
-// lib/use-conversation-engine.ts
-//
-// The state machine driving the AI Voice Onboarding flow.
-// Phases per question: "asking" (AI speaks) -> "listening" (user speaks)
-// -> "confirming" (AI repeats back what it heard) -> next question.
-// If parsing fails, it speaks a polite re-ask and listens again.
 
 "use client";
 
@@ -75,10 +69,6 @@ export function useConversationEngine() {
 
   const [brandSizeQueue, setBrandSizeQueue] = useState<string[]>([]);
   const [currentBrandIndex, setCurrentBrandIndex] = useState(0);
-
-  // Refs mirror state so callbacks always see the latest values without
-  // needing them in dependency arrays (avoids stale-closure bugs and
-  // exhaustive-deps warnings on intentionally-stable callbacks).
   const phaseRef = useRef(phase);
   const stepIndexRef = useRef(stepIndex);
   const answersRef = useRef(answers);
@@ -97,8 +87,6 @@ export function useConversationEngine() {
     setLog((prev) => [...prev, entry]);
   }, []);
 
-  // ── advance ──────────────────────────────────────────────────────────────
-  // Moves to the next question or finishes the quiz.
   const advance = useCallback(() => {
     const isLast = stepIndexRef.current === QUIZ_QUESTIONS.length - 1;
     if (isLast) {
@@ -106,12 +94,10 @@ export function useConversationEngine() {
       return;
     }
     setRetryCount(0);
-    setPhase("asking"); // unblock the stepIndex effect
-    setStepIndex((i) => i + 1);
+    setPhase("asking");
   }, []);
 
-  // ── askQuestion ──────────────────────────────────────────────────────────
-  // Speaks the prompt for the given step index and starts listening.
+  
   const askQuestion = useCallback(
     (idx: number) => {
       const q = QUIZ_QUESTIONS[idx];
@@ -146,7 +132,6 @@ export function useConversationEngine() {
     [advance, pushLog, speech]
   );
 
-  // ── handleBrandSizeAnswer ────────────────────────────────────────────────
   const handleBrandSizeAnswer = useCallback(
     (rawText: string) => {
       const queue = brandSizeQueueRef.current;
@@ -176,8 +161,6 @@ export function useConversationEngine() {
     [advance, pushLog, speech]
   );
 
-  // ── handleTranscript ─────────────────────────────────────────────────────
-  // Processes the final transcript after listening ends.
   const handleTranscript = useCallback(
     (text: string) => {
       pushLog({ speaker: "user", text });
@@ -210,7 +193,6 @@ export function useConversationEngine() {
         const nextRetry = retryCountRef.current + 1;
         setRetryCount(nextRetry);
         if (nextRetry >= 2) {
-          // After 2 failed attempts, skip the question and move on
           setAnswers((prev) => ({ ...prev, [question.id]: null }));
           setPhase("confirming");
           const skipMsg = "No worries, let's move on.";
@@ -240,9 +222,7 @@ export function useConversationEngine() {
     [advance, handleBrandSizeAnswer, pushLog, speech]
   );
 
-  // ── pending transcript ref ───────────────────────────────────────────────
-  // We write the transcript here in the effect (no setState), then a second
-  // effect picks it up asynchronously — satisfying react-hooks/set-state-in-effect.
+  
   const pendingTranscriptRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -250,13 +230,9 @@ export function useConversationEngine() {
     if (speech.isListening) return;
     const text = speech.transcript.trim();
     if (!text) return;
-    pendingTranscriptRef.current = text; // write only — no setState
+    pendingTranscriptRef.current = text; 
   }, [speech.isListening, speech.transcript]);
 
-  // ── effect: process pending transcript ───────────────────────────────────
-  // Reads the ref written above and calls handleTranscript outside the
-  // effect that owns the Web Speech state, keeping setState calls out of
-  // the listening-ended effect body.
   useEffect(() => {
     const text = pendingTranscriptRef.current;
     if (!text) return;
@@ -264,17 +240,16 @@ export function useConversationEngine() {
     handleTranscript(text);
   }, [speech.isListening, speech.transcript, handleTranscript]);
 
-  // ── effect: ask question when step changes ───────────────────────────────
+  
   useEffect(() => {
     const p = phaseRef.current;
     if (p === "intro" || p === "done") return;
     if (p === "confirming" || p === "clarifying") return;
     askQuestion(stepIndex);
-    // askQuestion is stable; stepIndex is the only real trigger here.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, [stepIndex]);
 
-  // ── start ─────────────────────────────────────────────────────────────────
+  
   const start = useCallback(() => {
     askQuestion(0);
   }, [askQuestion]);

@@ -1,10 +1,4 @@
-// lib/speech-types.d.ts
-//
-// TypeScript's built-in browser types (lib.dom.d.ts) don't include the
-// Web Speech API yet since it's still a non-standard/evolving spec.
-// This file teaches TypeScript what these browser objects look like,
-// so we get autocomplete + no red squiggles, without changing any
-// runtime behavior (declaration files produce zero JS output).
+
 
 interface SpeechRecognitionEventMap {
   audiostart: Event;

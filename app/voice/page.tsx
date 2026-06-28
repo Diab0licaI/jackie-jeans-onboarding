@@ -1,4 +1,4 @@
-// app/voice/page.tsx
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useConversationEngine } from "@/lib/use-conversation-engine";
 import ProgressBar from "@/components/manual/ProgressBar";
 
-// ── Mic button ────────────────────────────────────────────────────────────────
+
 function MicButton({
   phase,
   onStart,
@@ -58,7 +58,7 @@ function MicButton({
   );
 }
 
-// ── Chat bubble ───────────────────────────────────────────────────────────────
+
 function ChatBubble({ speaker, text }: { speaker: "ai" | "user"; text: string }) {
   const isAI = speaker === "ai";
   return (
@@ -82,7 +82,7 @@ function ChatBubble({ speaker, text }: { speaker: "ai" | "user"; text: string })
   );
 }
 
-// ── Live caption bar ──────────────────────────────────────────────────────────
+
 function LiveCaption({ text, active }: { text: string; active: boolean }) {
   if (!active && !text) return null;
   return (
@@ -105,7 +105,7 @@ function LiveCaption({ text, active }: { text: string; active: boolean }) {
   );
 }
 
-// ── Phase label ───────────────────────────────────────────────────────────────
+
 const PHASE_LABELS: Record<string, string> = {
   intro: "Tap to begin",
   asking: "Jackie is speaking…",
@@ -115,24 +115,21 @@ const PHASE_LABELS: Record<string, string> = {
   done: "All done!",
 };
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function VoicePage() {
   const router = useRouter();
   const engine = useConversationEngine();
   const logEndRef = useRef<HTMLDivElement>(null);
 
-  // Defer browser-API check until after hydration.
-  // Server has no `window`, so isSupported is always false there — checking it
-  // on first render causes a server/client HTML mismatch.
+  
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
-  // Scroll chat log to bottom on new entries
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [engine.log]);
 
-  // Redirect when done
+ 
   useEffect(() => {
     if (engine.phase !== "done") return;
     const params = new URLSearchParams();
@@ -144,12 +141,11 @@ export default function VoicePage() {
     return () => clearTimeout(timer);
   }, [engine.phase, engine.answers, router]);
 
-  // Pre-mount: return the same empty shell the server renders — no branch.
+  
   if (!mounted) {
     return <main className="min-h-screen bg-cream flex flex-col" />;
   }
 
-  // Post-mount: now safe to check real browser support.
   if (!engine.isSupported) {
     return (
       <main className="min-h-screen bg-cream flex items-center justify-center px-6">
@@ -197,17 +193,17 @@ export default function VoicePage() {
         </span>
       </header>
 
-      {/* ── Progress bar ── */}
+    
       {engine.phase !== "intro" && (
         <div className="px-5">
           <ProgressBar current={engine.stepIndex + 1} total={engine.totalSteps} />
         </div>
       )}
 
-      {/* ── Stitch divider ── */}
+      
       <div className="mx-5 my-3 border-t-2 border-dashed border-indigo/10" />
 
-      {/* ── Chat log ── */}
+      
       <div className="flex-1 overflow-y-auto px-5 py-2 space-y-3">
         {engine.log.length === 0 && engine.phase === "intro" && (
           <div className="flex flex-col items-center justify-center h-full min-h-[200px] text-center space-y-3 pt-8">
@@ -234,7 +230,6 @@ export default function VoicePage() {
         <div ref={logEndRef} />
       </div>
 
-      {/* ── Bottom panel ── */}
       <div className="px-5 pb-10 pt-4 space-y-4 bg-cream border-t border-indigo/8">
         {engine.phase === "listening" && (
           <LiveCaption
