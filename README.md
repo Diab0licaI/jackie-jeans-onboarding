@@ -1,36 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Jackie Jeans — Smart Fit Onboarding
+
+An AI-powered denim fit onboarding experience built for the Jackie Jeans internship hackathon challenge. Two flows, one goal: find your perfect fit.
+
+## Features
+
+### Manual Onboarding
+- Mobile-first, one question at a time
+- 10-question Fit Quiz with validation
+- Handles text, number, single-select, multi-select, and brand-size inputs
+- Progress bar with smooth transitions
+
+### Voice Onboarding
+- Fully voice-to-voice conversational quiz
+- Built on the Web Speech API — no API keys, no cost
+- Live transcript captions while you speak
+- Smart parser handles natural speech ("five foot six", "thirty two inches", "snug I guess")
+- Graceful retry on unclear answers, auto-skips after 2 failed attempts
+- Works in Chrome, Edge, and Safari
+
+## Tech Stack
+
+- **Next.js 16** (App Router, webpack mode)
+- **TypeScript**
+- **Tailwind CSS v4**
+- **Web Speech API** — SpeechRecognition (STT) + speechSynthesis (TTS)
+- Deployed on **Vercel**
+
+## Design
+
+Denim-inspired palette — deep indigo `#1b2a4a`, thread-gold `#c8954b`, warm cream `#faf8f4`. Manrope for headings, Inter for body, with a signature stitch-line dashed divider motif throughout.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** The app uses `--webpack` flag due to Next.js 16 Turbopack compatibility. This is already set in `package.json`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project Structure
 
-## Learn More
+```
+app/
+  page.tsx                  # Landing page — choose Manual or Voice
+  manual/page.tsx           # Manual onboarding flow
+  voice/page.tsx            # Voice onboarding flow
+components/
+  manual/
+    ProgressBar.tsx         # Step progress bar
+    QuestionRenderer.tsx    # Renders all 5 input types
+lib/
+  quiz-data.ts              # Single source of truth — all 10 questions
+  use-speech.ts             # Web Speech API hook (STT + TTS)
+  speech-types.d.ts         # TypeScript ambient declarations for Speech API
+  voice-parser.ts           # Parses spoken answers into valid quiz values
+  use-conversation-engine.ts # Voice flow state machine
+```
 
-To learn more about Next.js, take a look at the following resources:
+## The Fit Quiz
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+10 questions collected across both flows:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| # | Question | Type |
+|---|----------|------|
+| 1 | Height | Text (parsed from speech) |
+| 2 | Weight | Number (optional) |
+| 3 | Waist measurement | Number |
+| 4 | Hip measurement | Number |
+| 5 | Waist fit preference | Single select |
+| 6 | Rise preference | Single select |
+| 7 | Thigh fit | Single select |
+| 8 | Denim brands you wear | Multi select |
+| 9 | Size per brand | Brand-size followup |
+| 10 | Biggest fit frustration | Single select |
 
-## Deploy on Vercel
+## Voice Flow Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+intro → asking → listening → confirming → [next question]
+                     ↓
+                 clarifying → listening (1 retry)
+                     ↓
+              skip & move on (after 2 failures)
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Browser Support
+
+Voice onboarding requires the Web Speech API:
+- ✅ Chrome
+- ✅ Edge  
+- ✅ Safari
+- ❌ Firefox (falls back to manual gracefully)
