@@ -1,26 +1,75 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-denim: #1b2a4a;
+  --color-denim-light: #2c3f66;
+  --color-thread: #c8954b;
+  --color-thread-light: #e0b97c;
+  --color-cream: #faf8f4;
+  --color-slate: #6b7280;
+  --color-slate-dark: #374151;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html,
+body {
+  background: var(--color-cream);
+  color: var(--color-denim);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  margin: 0;
+  padding: 0;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-manrope), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* Stitch-line: the signature denim-topstitch divider used under headings
+   and inside the progress bar. Two offset dashed lines mimic double
+   stitching on raw denim. */
+.stitch-line {
+  position: relative;
+  height: 6px;
+  width: 100%;
+}
+.stitch-line::before,
+.stitch-line::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 2px dashed var(--color-thread);
+  opacity: 0.85;
+}
+.stitch-line::before {
+  top: 0;
+}
+.stitch-line::after {
+  top: 4px;
+}
+
+/* Respect reduced-motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Visible keyboard focus ring everywhere */
+:focus-visible {
+  outline: 2px solid var(--color-thread);
+  outline-offset: 2px;
 }

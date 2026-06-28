@@ -1,0 +1,88 @@
+// lib/speech-types.d.ts
+//
+// TypeScript's built-in browser types (lib.dom.d.ts) don't include the
+// Web Speech API yet since it's still a non-standard/evolving spec.
+// This file teaches TypeScript what these browser objects look like,
+// so we get autocomplete + no red squiggles, without changing any
+// runtime behavior (declaration files produce zero JS output).
+
+interface SpeechRecognitionEventMap {
+  audiostart: Event;
+  audioend: Event;
+  end: Event;
+  error: SpeechRecognitionErrorEvent;
+  nomatch: SpeechRecognitionEvent;
+  result: SpeechRecognitionEvent;
+  soundstart: Event;
+  soundend: Event;
+  speechstart: Event;
+  speechend: Event;
+  start: Event;
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  readonly error: string;
+  readonly message: string;
+}
+
+interface SpeechRecognitionAlternative {
+  readonly transcript: string;
+  readonly confidence: number;
+}
+
+interface SpeechRecognitionResult {
+  readonly length: number;
+  readonly isFinal: boolean;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionEvent extends Event {
+  readonly resultIndex: number;
+  readonly results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  maxAlternatives: number;
+
+  start(): void;
+  stop(): void;
+  abort(): void;
+
+  onaudiostart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onaudioend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onerror:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionErrorEvent) => unknown)
+    | null;
+  onnomatch:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown)
+    | null;
+  onresult:
+    | ((this: SpeechRecognition, ev: SpeechRecognitionEvent) => unknown)
+    | null;
+  onsoundstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onsoundend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onspeechstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onspeechend: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+  onstart: ((this: SpeechRecognition, ev: Event) => unknown) | null;
+}
+
+declare const SpeechRecognition: {
+  prototype: SpeechRecognition;
+  new (): SpeechRecognition;
+};
+
+interface Window {
+  SpeechRecognition: typeof SpeechRecognition;
+  webkitSpeechRecognition: typeof SpeechRecognition;
+}
