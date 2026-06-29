@@ -141,44 +141,33 @@ export function useSpeech(): UseSpeechResult {
     if (!voiceRef.current) voiceRef.current = pickVoice();
     if (voiceRef.current) utterance.voice = voiceRef.current;
 
-    // Fallback timer: Android/Chrome sometimes silently drops onend.
-    // Fires after estimated speech duration if onend never comes.
-    const wordCount = text.trim().split(/\s+/).length;
-    const estimatedMs = Math.max(800, wordCount * 60 + 300);
     let done = false;
-    const fallbackTimer = setTimeout(() => {
-      if (done) return;
-      done = true;
-      setIsSpeaking(false);
-      onDone?.();
-    }, estimatedMs);
 
     const finish = () => {
       if (done) return;
       done = true;
-      clearTimeout(fallbackTimer);
       clearInterval(resumeInterval);
       setIsSpeaking(false);
       onDone?.();
     };
 
+    // Hard timeout: no matter what, advance after estimated duration.
+    // Chrome and Android both have bugs where onend never fires.
+    const wordCount = text.trim().split(/\s+/).length;
+    const estimatedMs = Math.max(600, wordCount * 550);
+    const hardTimer = setTimeout(finish, estimatedMs);
+
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = finish;
-    utterance.onerror = finish;
+    utterance.onend = () => { clearTimeout(hardTimer); finish(); };
+    utterance.onerror = () => { clearTimeout(hardTimer); finish(); };
+
+    // Chrome desktop idle-pause workaround
+    const resumeInterval = setInterval(() => {
+      if (!window.speechSynthesis.speaking) { clearInterval(resumeInterval); return; }
+      if (window.speechSynthesis.paused) window.speechSynthesis.resume();
+    }, 200);
 
     window.speechSynthesis.speak(utterance);
-
-    // Chrome desktop pauses speechSynthesis when tab loses focus or after
-    // a short idle. Calling resume() every 200ms keeps it alive.
-    const resumeInterval = setInterval(() => {
-      if (!window.speechSynthesis.speaking) {
-        clearInterval(resumeInterval);
-        return;
-      }
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
-    }, 200);
   }, []);
 
   const resetTranscript = useCallback(() => {
