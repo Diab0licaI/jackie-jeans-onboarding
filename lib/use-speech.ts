@@ -19,16 +19,10 @@ function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
   if (!voices.length) return null;
-
-
   const localEN = voices.find((v) => v.lang.startsWith("en") && v.localService);
   if (localEN) return localEN;
-
-
   const anyEN = voices.find((v) => v.lang.startsWith("en"));
   if (anyEN) return anyEN;
-
-
   return voices[0] ?? null;
 }
 
@@ -58,19 +52,18 @@ export function useSpeech(): UseSpeechResult {
   const recognitionRef = useRef<SpeechRecognitionType | null>(null);
   const voiceRef = useRef<SpeechSynthesisVoice | null>(null);
 
+  // Pre-warm TTS engine and pick fastest local voice on mount
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
 
     const init = () => {
       voiceRef.current = pickVoice();
-   
       const warmup = new SpeechSynthesisUtterance(" ");
       warmup.volume = 0;
       if (voiceRef.current) warmup.voice = voiceRef.current;
       window.speechSynthesis.speak(warmup);
     };
 
-   
     if (window.speechSynthesis.getVoices().length > 0) {
       init();
     } else {
@@ -148,10 +141,10 @@ export function useSpeech(): UseSpeechResult {
     if (!voiceRef.current) voiceRef.current = pickVoice();
     if (voiceRef.current) utterance.voice = voiceRef.current;
 
-    // Android Chrome often silently drops onend — use a timeout fallback.
-    // Estimate duration: ~80ms per word + 500ms buffer, minimum 1500ms.
+    // Fallback timer: Android/Chrome sometimes silently drops onend.
+    // Fires after estimated speech duration if onend never comes.
     const wordCount = text.trim().split(/\s+/).length;
-    const estimatedMs = Math.max(1500, wordCount * 80 + 500);
+    const estimatedMs = Math.max(800, wordCount * 60 + 300);
     let done = false;
     const fallbackTimer = setTimeout(() => {
       if (done) return;
@@ -164,6 +157,7 @@ export function useSpeech(): UseSpeechResult {
       if (done) return;
       done = true;
       clearTimeout(fallbackTimer);
+      clearInterval(resumeInterval);
       setIsSpeaking(false);
       onDone?.();
     };
@@ -173,6 +167,18 @@ export function useSpeech(): UseSpeechResult {
     utterance.onerror = finish;
 
     window.speechSynthesis.speak(utterance);
+
+    // Chrome desktop pauses speechSynthesis when tab loses focus or after
+    // a short idle. Calling resume() every 200ms keeps it alive.
+    const resumeInterval = setInterval(() => {
+      if (!window.speechSynthesis.speaking) {
+        clearInterval(resumeInterval);
+        return;
+      }
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
+    }, 200);
   }, []);
 
   const resetTranscript = useCallback(() => {
