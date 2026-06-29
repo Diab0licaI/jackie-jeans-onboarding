@@ -15,7 +15,6 @@ function getSpeechRecognition(): typeof window.SpeechRecognition | undefined {
   );
 }
 
-
 function pickVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
   const voices = window.speechSynthesis.getVoices();
@@ -29,7 +28,7 @@ function pickVoice(): SpeechSynthesisVoice | null {
   const anyEN = voices.find((v) => v.lang.startsWith("en"));
   if (anyEN) return anyEN;
 
-  
+
   return voices[0] ?? null;
 }
 
@@ -142,23 +141,36 @@ export function useSpeech(): UseSpeechResult {
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.15; 
+    utterance.rate = 1.15;
     utterance.pitch = 1.05;
     utterance.lang = "en-US";
 
-  
     if (!voiceRef.current) voiceRef.current = pickVoice();
     if (voiceRef.current) utterance.voice = voiceRef.current;
 
+    // Android Chrome often silently drops onend — use a timeout fallback.
+    // Estimate duration: ~80ms per word + 500ms buffer, minimum 1500ms.
+    const wordCount = text.trim().split(/\s+/).length;
+    const estimatedMs = Math.max(1500, wordCount * 80 + 500);
+    let done = false;
+    const fallbackTimer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      setIsSpeaking(false);
+      onDone?.();
+    }, estimatedMs);
+
+    const finish = () => {
+      if (done) return;
+      done = true;
+      clearTimeout(fallbackTimer);
+      setIsSpeaking(false);
+      onDone?.();
+    };
+
     utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      onDone?.();
-    };
-    utterance.onerror = () => {
-      setIsSpeaking(false);
-      onDone?.();
-    };
+    utterance.onend = finish;
+    utterance.onerror = finish;
 
     window.speechSynthesis.speak(utterance);
   }, []);
